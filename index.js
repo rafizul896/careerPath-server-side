@@ -40,15 +40,24 @@ async function run() {
             res.send(result)
         })
         // get a job by id
-        app.get('/job/:id', async (req, res) => {
+        app.get('/jobs/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await jobsCollection.findOne(query);
             res.send(result);
         })
         // applyedJob
-        app.get('/applyedJob',async(req,res)=>{
+        app.get('/applyedJob', async (req, res) => {
             const result = await applyedJobCollention.find().toArray();
+            res.send(result);
+        })
+        // get job data by email
+        app.get('/job/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = {
+                'user.email': email
+            };
+            const result = await jobsCollection.find(query).toArray();
             res.send(result);
         })
         // save a applied job in db
