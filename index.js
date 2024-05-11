@@ -33,20 +33,40 @@ async function run() {
     try {
         // Send a ping to confirm a successful connection
         const jobsCollection = client.db('job-seeking').collection('jobs');
-
+        const applyedJobCollention = client.db('job-seeking').collection('applyedJob');
         // get all jobs data:
         app.get('/jobs', async (req, res) => {
             const result = await jobsCollection.find().toArray();
             res.send(result)
         })
-        app.get('/job/:id',async(req,res)=>{
+        // get a job by id
+        app.get('/job/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await jobsCollection.findOne(query);
             res.send(result);
         })
+        // applyedJob
+        app.get('/applyedJob',async(req,res)=>{
+            const result = await applyedJobCollention.find().toArray();
+            res.send(result);
+        })
+        // save a applied job in db
+        app.post('/applyedJob', async (req, res) => {
+            const applyedJob = req.body;
+            const query = {
+                email: applyedJob.email,
+                job_id: applyedJob.job_id
+            }
+            const alreadyApplied = await applyedJobCollention.findOne(query);
+            if (alreadyApplied) {
+                return res.send(400).send('You have already applied on this job')
+            }
+            const result = await applyedJobCollention.insertOne(applyedJob);
+            res.send(result);
+        })
         // add jobs
-        app.post('/jobs',async(req,res)=>{
+        app.post('/jobs', async (req, res) => {
             const job = req.body;
             console.log(job);
             const result = await jobsCollection.insertOne(job);
@@ -74,7 +94,7 @@ async function run() {
                 }
             }
             const skip = (page - 1) * size
-            const result = await jobsCollection.find(query,options).skip(skip).limit(size).toArray();
+            const result = await jobsCollection.find(query, options).skip(skip).limit(size).toArray();
             res.send(result)
         })
         // get all jobs count
