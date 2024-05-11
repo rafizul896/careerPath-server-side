@@ -17,7 +17,7 @@ app.use(
 app.use(express.json())
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.y7qmkns.mongodb.net/?retryWrites=true&w=majority&appName=cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -38,6 +38,19 @@ async function run() {
         app.get('/jobs', async (req, res) => {
             const result = await jobsCollection.find().toArray();
             res.send(result)
+        })
+        app.get('/job/:id',async(req,res)=>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await jobsCollection.findOne(query);
+            res.send(result);
+        })
+        // add jobs
+        app.post('/jobs',async(req,res)=>{
+            const job = req.body;
+            console.log(job);
+            const result = await jobsCollection.insertOne(job);
+            res.send(result);
         })
         // Get all jobs data from db for pagination
         app.get('/all-jobs', async (req, res) => {
