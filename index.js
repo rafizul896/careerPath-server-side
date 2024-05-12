@@ -34,6 +34,21 @@ async function run() {
         // Send a ping to confirm a successful connection
         const jobsCollection = client.db('job-seeking').collection('jobs');
         const applyedJobCollention = client.db('job-seeking').collection('applyedJob');
+        // jwt
+        app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '7d' });
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict'
+            }).send({ success: true })
+        })
+        // jwt token clear cookie
+        app.post('/logout', async (req, res) => {
+            const user = req.body;
+            res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+        })
         // get all jobs data:
         app.get('/jobs', async (req, res) => {
             const result = await jobsCollection.find().toArray();
@@ -60,6 +75,13 @@ async function run() {
             const result = await jobsCollection.find(query).toArray();
             res.send(result);
         })
+        // delete a job data
+        app.delete('/job/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await jobsCollection.deleteOne(query);
+            res.send(result);
+        })
         // save a applied job in db
         app.post('/applyedJob', async (req, res) => {
             const applyedJob = req.body;
@@ -74,11 +96,33 @@ async function run() {
             const result = await applyedJobCollention.insertOne(applyedJob);
             res.send(result);
         })
+        // get all bits for a user by email by db:
+        app.get('/applyedJob/:email', verifyToken, async (req, res) => {
+            const tokenData = req.user.email;
+            const email = req.params.email;
+            if (tokenData !== email) {
+                return res.status(403).send({ message: 'unauthorid access' })
+            }
+            const query = { email: email };
+            const result = await bidsCollection.find(query).toArray();
+            res.send(result);
+        })
         // add jobs
         app.post('/jobs', async (req, res) => {
             const job = req.body;
             console.log(job);
             const result = await jobsCollection.insertOne(job);
+            res.send(result);
+        })
+        // update statuse
+        app.patch('/jobs/:id', async (req, res) => {
+            const id = req.params.id;
+            const status = req.body;
+            const query = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: status
+            }
+            const result = await jobsCollection.updateOne(query, updateDoc);
             res.send(result);
         })
         // Get all jobs data from db for pagination
