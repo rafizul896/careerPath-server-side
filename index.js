@@ -1,5 +1,7 @@
 const express = require('express');
-const cors = require('cors')
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser')
 const app = express();
 require('dotenv').config()
 const port = process.env.PORT || 5000;
@@ -14,8 +16,23 @@ app.use(
         credentials: true,
     })
 );
-app.use(express.json())
+app.use(express.json());
+app.use(cookieParser());
 
+// verifyToken middleware
+const verifyToken = (req, res, next) => {
+    const token = req.cookies?.token;
+    if (!token) {
+        return res.status(401).send({ message: 'Unauthorid access' })
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.send(401).send({ message: 'Unauthorid access' })
+        }
+        req.user = decoded;
+        next()
+    })
+}
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.y7qmkns.mongodb.net/?retryWrites=true&w=majority&appName=cluster0`;
@@ -96,6 +113,11 @@ async function run() {
             const result = await applyedJobCollention.insertOne(applyedJob);
             res.send(result);
         })
+        // get applyedJob
+        app.get('/applyedJob',async(req,res)=>{
+            const result = await applyedJobCollention.find().toArray();
+            res.send(result)
+        })
         // get all bits for a user by email by db:
         app.get('/applyedJob/:email', verifyToken, async (req, res) => {
             const tokenData = req.user.email;
@@ -104,7 +126,7 @@ async function run() {
                 return res.status(403).send({ message: 'unauthorid access' })
             }
             const query = { email: email };
-            const result = await bidsCollection.find(query).toArray();
+            const result = await applyedJobCollention.find(query).toArray();
             res.send(result);
         })
         // add jobs
