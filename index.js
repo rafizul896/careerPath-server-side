@@ -6,31 +6,30 @@ const app = express();
 require('dotenv').config()
 const port = process.env.PORT || 5000;
 
-app.use(
-    cors({
-        origin: [
-            "http://localhost:5173",
-            "https://assignment-eleven-e0849.web.app",
-            "https://assignment-eleven-e0849.firebaseapp.com",
-        ],
-        credentials: true,
-    })
+app.use(cors({
+    origin: [
+        "http://localhost:5173",
+        "https://assignment-eleven-e0849.web.app",
+        "https://assignment-eleven-e0849.firebaseapp.com",
+    ],
+    credentials: true,
+})
 );
 app.use(express.json());
 app.use(cookieParser());
 
-// verifyToken middleware
+// valid middleware
 const verifyToken = (req, res, next) => {
-    const token = req.cookies?.token;
+    const token = req?.cookies?.token;
     if (!token) {
-        return res.status(401).send({ message: 'Unauthorid access' })
+        return res.status(401).send({ message: 'unauthorid access' })
     }
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
         if (err) {
-            return res.send(401).send({ message: 'Unauthorid access' })
+            return res.status(401).send({ message: 'unauthorid access' })
         }
-        req.user = decoded;
-        next()
+        req.user = decoded
+        next();
     })
 }
 
@@ -78,14 +77,30 @@ async function run() {
             const result = await jobsCollection.findOne(query);
             res.send(result);
         })
+        // get a job by id
+        app.patch('/jobs/:id', async (req, res) => {
+            const id = req.params.id;
+            const applicantsNumber = req.body;
+            const query = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: applicantsNumber
+            }
+            const result = await jobsCollection.updateOne(query, updateDoc);
+            res.send(result);
+        })
         // applyedJob
         app.get('/applyedJob', async (req, res) => {
             const result = await applyedJobCollention.find().toArray();
             res.send(result);
         })
         // get job data by email
-        app.get('/job/:email', async (req, res) => {
-            const email = req.params.email;
+        app.get('/job/:email', verifyToken, async (req, res) => {
+            const tokenData = req.user.email;
+            const email = req.params.email
+            console.log(email)
+            if (tokenData !== email) {
+                return res.status(403).send({ message: 'unauthorid access' })
+            }
             const query = {
                 'user.email': email
             };
@@ -114,21 +129,21 @@ async function run() {
             res.send(result);
         })
         // get applyedJob
-        app.get('/applyedJob',async(req,res)=>{
+        app.get('/applyedJob', async (req, res) => {
             const result = await applyedJobCollention.find().toArray();
             res.send(result)
         })
-        // get all bits for a user by email by db:
-        app.get('/applyedJob/:email', verifyToken, async (req, res) => {
-            const tokenData = req.user.email;
-            const email = req.params.email;
-            if (tokenData !== email) {
-                return res.status(403).send({ message: 'unauthorid access' })
-            }
-            const query = { email: email };
-            const result = await applyedJobCollention.find(query).toArray();
-            res.send(result);
-        })
+        // // get all bits for a user by email by db:
+        // app.get('/applyedJob/:email', verifyToken, async (req, res) => {
+        //     const tokenData = req.user.email;
+        //     const email = req.params.email;
+        //     if (tokenData !== email) {
+        //         return res.status(403).send({ message: 'unauthorid access' })
+        //     }
+        //     const query = { email: email };
+        //     const result = await applyedJobCollention.find(query).toArray();
+        //     res.send(result);
+        // })
         // add jobs
         app.post('/jobs', async (req, res) => {
             const job = req.body;
@@ -170,6 +185,19 @@ async function run() {
             }
             const skip = (page - 1) * size
             const result = await jobsCollection.find(query, options).skip(skip).limit(size).toArray();
+            res.send(result)
+        })
+        // Get all jobs data from db for pagination
+        app.get('/myApplyedJob', verifyToken, async (req, res) => {
+            const filter = req.query?.filter;
+            const email = req.query?.email;
+            const tokenData = req.user?.email;
+            if (tokenData !== email) {
+                return res.status(403).send({ message: 'unauthorid access' })
+            }
+            let query = { email: email }
+            if (filter) { query.category = filter }
+            const result = await applyedJobCollention.find(query).toArray();
             res.send(result)
         })
         // get all jobs count
