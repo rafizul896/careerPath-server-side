@@ -49,7 +49,9 @@ async function run() {
     try {
         // Send a ping to confirm a successful connection
         const jobsCollection = client.db('job-seeking').collection('jobs');
-        const applyedJobCollention = client.db('job-seeking').collection('applyedJob');
+        const applyedJobCollection = client.db('job-seeking').collection('applyedJob');
+        const blogsCollection = client.db('job-seeking').collection('blogs');
+
         // jwt
         app.post('/jwt', async (req, res) => {
             const user = req.body;
@@ -60,16 +62,19 @@ async function run() {
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict'
             }).send({ success: true })
         })
+
         // jwt token clear cookie
         app.post('/logout', async (req, res) => {
             const user = req.body;
             res.clearCookie('token', { maxAge: 0 }).send({ success: true })
         })
+
         // get all jobs data:
         app.get('/jobs', async (req, res) => {
             const result = await jobsCollection.find().toArray();
             res.send(result)
         })
+
         // get a job by id
         app.get('/jobs/:id', async (req, res) => {
             const id = req.params.id;
@@ -77,6 +82,27 @@ async function run() {
             const result = await jobsCollection.findOne(query);
             res.send(result);
         })
+
+        // get Featured Jobs 
+        app.get('/featuredJobs', async (req, res) => {
+            const result = await jobsCollection.find().sort({ applicantsNumber: -1 }).limit(3).toArray();
+            res.send(result)
+        })
+
+        // get blogs data 
+        app.get('/blogs', async (req, res) => {
+            const result = await blogsCollection.find().toArray();
+            res.send(result);
+        })
+
+        // get a blog data 
+        app.get('/blogs/:id', async (req, res) => {
+            const id = req.params.id
+            const query = {_id: new ObjectId(id)}
+            const result = await blogsCollection.findOne(query);
+            res.send(result);
+        })
+
         // get a job by id
         app.patch('/jobs/:id', async (req, res) => {
             const id = req.params.id;
@@ -88,11 +114,13 @@ async function run() {
             const result = await jobsCollection.updateOne(query, updateDoc);
             res.send(result);
         })
+
         // applyedJob
         app.get('/applyedJob', async (req, res) => {
-            const result = await applyedJobCollention.find().toArray();
+            const result = await applyedJobCollection.find().toArray();
             res.send(result);
         })
+
         // get job data by email
         app.get('/job/:email', verifyToken, async (req, res) => {
             const tokenData = req.user.email;
@@ -107,6 +135,7 @@ async function run() {
             const result = await jobsCollection.find(query).toArray();
             res.send(result);
         })
+
         // delete a job data
         app.delete('/job/:id', async (req, res) => {
             const id = req.params.id;
@@ -114,6 +143,7 @@ async function run() {
             const result = await jobsCollection.deleteOne(query);
             res.send(result);
         })
+
         // save a applied job in db
         app.post('/applyedJob', async (req, res) => {
             const applyedJob = req.body;
@@ -121,29 +151,20 @@ async function run() {
                 email: applyedJob.email,
                 job_id: applyedJob.job_id
             }
-            const alreadyApplied = await applyedJobCollention.findOne(query);
+            const alreadyApplied = await applyedJobCollection.findOne(query);
             if (alreadyApplied) {
                 return res.send(400).send('You have already applied on this job')
             }
-            const result = await applyedJobCollention.insertOne(applyedJob);
+            const result = await applyedJobCollection.insertOne(applyedJob);
             res.send(result);
         })
+
         // get applyedJob
         app.get('/applyedJob', async (req, res) => {
-            const result = await applyedJobCollention.find().toArray();
+            const result = await applyedJobCollection.find().toArray();
             res.send(result)
         })
-        // // get all bits for a user by email by db:
-        // app.get('/applyedJob/:email', verifyToken, async (req, res) => {
-        //     const tokenData = req.user.email;
-        //     const email = req.params.email;
-        //     if (tokenData !== email) {
-        //         return res.status(403).send({ message: 'unauthorid access' })
-        //     }
-        //     const query = { email: email };
-        //     const result = await applyedJobCollention.find(query).toArray();
-        //     res.send(result);
-        // })
+
         // add jobs
         app.post('/jobs', async (req, res) => {
             const job = req.body;
@@ -151,6 +172,7 @@ async function run() {
             const result = await jobsCollection.insertOne(job);
             res.send(result);
         })
+
         // update statuse
         app.patch('/jobs/:id', async (req, res) => {
             const id = req.params.id;
@@ -162,6 +184,7 @@ async function run() {
             const result = await jobsCollection.updateOne(query, updateDoc);
             res.send(result);
         })
+
         // Get all jobs data from db for pagination
         app.get('/all-jobs', async (req, res) => {
             const size = parseInt(req.query?.size);
@@ -187,6 +210,7 @@ async function run() {
             const result = await jobsCollection.find(query, options).skip(skip).limit(size).toArray();
             res.send(result)
         })
+
         // Get all jobs data from db for pagination
         app.get('/myApplyedJob', verifyToken, async (req, res) => {
             const filter = req.query?.filter;
@@ -197,9 +221,10 @@ async function run() {
             }
             let query = { email: email }
             if (filter) { query.category = filter }
-            const result = await applyedJobCollention.find(query).toArray();
+            const result = await applyedJobCollection.find(query).toArray();
             res.send(result)
         })
+
         // get all jobs count
         app.get('/jobs-count', async (req, res) => {
             const filter = req.query?.filter;
