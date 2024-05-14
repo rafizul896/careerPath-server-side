@@ -98,7 +98,7 @@ async function run() {
         // get a blog data 
         app.get('/blogs/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await blogsCollection.findOne(query);
             res.send(result);
         })
@@ -225,18 +225,14 @@ async function run() {
             res.send(result)
         })
 
-        // get all jobs count
-        app.get('/jobsCount', async (req, res) => {
-            const filter = req.query?.filter;
+        app.get('/jobs-total',async(req,res)=>{
             const search = req.query?.search;
-            let query = {
-                jobTitle: { $regex: search, $options: 'i' }
-            }
-            if (filter) {
-                query.category = filter
+            let query = {};
+            if(search){
+                query.jobTitle = {$regex: search,$options: 'i'}
             }
             const result = await jobsCollection.countDocuments(query);
-            res.send({ count: result });
+            res.send({count: result});
         })
 
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
