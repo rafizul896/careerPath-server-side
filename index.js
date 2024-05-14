@@ -226,7 +226,7 @@ async function run() {
         })
 
         // get all jobs count
-        app.get('/jobs-count', async (req, res) => {
+        app.get('/jobsCount', async (req, res) => {
             const filter = req.query?.filter;
             const search = req.query?.search;
             let query = {
