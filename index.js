@@ -153,7 +153,7 @@ async function run() {
             }
             const alreadyApplied = await applyedJobCollection.findOne(query);
             if (alreadyApplied) {
-                return res.send(400).send('You have already applied on this job')
+                return res.status(400).send({ message: 'You have already applied on this job' })
             }
             const result = await applyedJobCollection.insertOne(applyedJob);
             res.send(result);
@@ -225,14 +225,14 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/jobs-total',async(req,res)=>{
+        app.get('/jobs-total', async (req, res) => {
             const search = req.query?.search;
             let query = {};
-            if(search){
-                query.jobTitle = {$regex: search,$options: 'i'}
+            if (search) {
+                query.jobTitle = { $regex: search, $options: 'i' }
             }
             const result = await jobsCollection.countDocuments(query);
-            res.send({count: result});
+            res.send({ count: result });
         })
 
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
