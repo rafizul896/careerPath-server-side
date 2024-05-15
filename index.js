@@ -124,7 +124,7 @@ async function run() {
         // get job data by email
         app.get('/job/:email', verifyToken, async (req, res) => {
             const tokenData = req.user.email;
-            const email = req.params.email
+            const email = req.params.email;
             console.log(email)
             if (tokenData !== email) {
                 return res.status(403).send({ message: 'unauthorid access' })
