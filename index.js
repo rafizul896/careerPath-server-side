@@ -197,6 +197,7 @@ async function run() {
                 jobTitle: { $regex: search?.toString(), $options: 'i' }
             }
             console.log(query)
+            
             if (filter) {
                 query.category = filter
             }
